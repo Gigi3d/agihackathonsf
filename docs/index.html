@@ -116,10 +116,39 @@
   footer .wrap{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;align-items:center}
   footer a{color:var(--muted)} footer a:hover{color:var(--gold)}
 
+  @media(max-width:960px){
+    .g3,.g4{grid-template-columns:1fr 1fr}
+    .hero{padding:96px 0 72px}
+    .demo-grid{gap:26px}
+    section h2[style]{font-size:30px !important}
+  }
   @media(max-width:760px){
     .g2,.g3,.g4,.ba,.demo-grid{grid-template-columns:1fr}
-    .navlinks{display:none}
-    section{padding:64px 0}
+    .navlinks a:not(.btn){display:none}
+    .navlinks{gap:12px}
+    section{padding:56px 0}
+    .hero{padding:72px 0 52px}
+    .hero p.lead{font-size:17px}
+    section h2[style]{font-size:26px !important}
+    .pipe{flex-direction:column;align-items:stretch}
+    .stage{min-width:0;width:100%}
+    .swarm{flex-direction:column}
+    .chat{max-width:100%}
+    footer .wrap{flex-direction:column;align-items:flex-start}
+  }
+  @media(max-width:440px){
+    .wrap{padding:0 16px}
+    h1.big{font-size:33px}
+    .hero{padding:60px 0 46px}
+    .hero p.lead{font-size:15.5px}
+    .btn{padding:10px 13px;font-size:13px}
+    .cta{gap:9px}
+    .platstrip{gap:7px;margin-top:38px}
+    .pill{font-size:12px;padding:7px 12px}
+    .card,.agent{padding:20px}
+    .agent{min-width:0;width:100%}
+    section h2[style]{font-size:22px !important}
+    .eyebrow{margin-bottom:12px}
   }
 </style>
 </head>
@@ -210,7 +239,7 @@
       <h3>Tech Lead</h3>
       <p>Reads the event, decides <i>what shipped &amp; why it matters</i>, emits a structured brief + vibe keywords.</p>
     </div>
-    <div class="handoff"><span class="l">secure hand-off</span>──- brief --▶</div>
+    <div class="handoff"><span class="l">secure hand-off</span>─── brief ───▶</div>
     <div class="agent">
       <div class="role">📣 Writer</div>
       <h3>Copywriter</h3>
