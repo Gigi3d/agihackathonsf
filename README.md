@@ -1,6 +1,6 @@
 # OpenPulse
 
-**Give your repo a heartbeat.** OpenPulse is an AI-native GitHub → community bot. When a commit lands or a PR merges, a **multi-agent swarm** turns it into a witty, grounded announcement with a meme and broadcasts it to **X, Telegram, Discord, and Slack**. A weekly job posts a top‑10 contributor leaderboard.
+**Give your repo a heartbeat.** OpenPulse is a multi-agent orchestration and developer-community automation tool. When a commit lands or a PR merges, a **multi-agent swarm** turns it into a witty, grounded announcement with a meme and broadcasts it to **X, Telegram, Discord, and Slack**. A weekly job posts a top‑10 contributor leaderboard.
 
 First deployed for **BitMask** (a 160,000+ developer community across four platforms, backed by Tim Draper); built for any repo, open or closed.
 
