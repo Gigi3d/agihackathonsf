@@ -118,6 +118,14 @@ See [`cotal/README.md`](cotal/README.md).
 
 ---
 
+## Business & scalability
+A credible path to a $100M company.
+- **Market:** millions of repos and orgs; developer marketing is a multi-billion-dollar spend, and agentic coding ships more code every day.
+- **Model:** free for one repo, paid per org, then upsell agentic devrel (release threads, changelog digests, recap clips). Every post carries a subtle "via OpenPulse," so it markets itself.
+- **Moat:** it becomes your community's voice and owns your distribution, so switching cost compounds.
+- **Math:** 10,000 orgs × $1k/yr = $10M ARR, and 10x from there to $100M.
+- **Proof:** first deployed for BitMask (160,000+ community, backed by Tim Draper).
+
 ## Status
 
 | Piece | State |
