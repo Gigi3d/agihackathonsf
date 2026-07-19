@@ -4,7 +4,7 @@ COTAL is the multi-agent coordination substrate: a local [NATS](https://nats.io)
 
 ## Prerequisites
 - Node 20+
-- `nats-server` on PATH (`brew install nats-server`) — COTAL ships no macOS arm64 binary.
+- `nats-server` on PATH (`brew install nats-server`), COTAL ships no macOS arm64 binary.
 
 ## Setup
 
@@ -45,7 +45,7 @@ npx cotal-ai send dm tech-lead \
   "New merged PR in bitmask-stack/rgb-core: 'Add RGB20 fungible asset issuance flow'. Analyze it, then DM your brief to the copywriter."
 ```
 
-Watch the Tech Lead analyze, DM the Copywriter, and the Copywriter reply — signed identities and a durable log on the mesh.
+Watch the Tech Lead analyze, DM the Copywriter, and the Copywriter reply, signed identities and a durable log on the mesh.
 
 ## Stop
 

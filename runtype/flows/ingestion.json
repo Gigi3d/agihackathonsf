@@ -1,5 +1,5 @@
 {
-  "_note": "GitHub event -> multi-agent swarm -> meme -> broadcast -> state. Tool refs use the portable 'tool:<name>' form; execute-agent 'agentId' values are placeholders — set them to your created agent ids on import. The `when` gate 'G' guards every step after dedupe so unprocessable/duplicate events short-circuit.",
+  "_note": "GitHub event -> multi-agent swarm -> meme -> broadcast -> state. Tool refs use the portable 'tool:<name>' form; execute-agent 'agentId' values are placeholders, set them to your created agent ids on import. The `when` gate 'G' guards every step after dedupe so unprocessable/duplicate events short-circuit.",
   "name": "GitHub Event → Announce & Broadcast",
   "steps": [
     {

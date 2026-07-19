@@ -4,8 +4,8 @@ An AI-native GitHub → community bot for the [`bitmask-stack`](https://github.c
 
 Built for the AGI Hackathon SF on a **Dual‑Core** stack:
 
-- **[Runtype](https://runtype.com)** — execution: agents, flows, tools, secret injection, evals, broadcasting
-- **[COTAL](https://cotal.ai)** — coordination: a local NATS mesh where signed, role‑specialized agents hand off work
+- **[Runtype](https://runtype.com)**, execution: agents, flows, tools, secret injection, evals, broadcasting
+- **[COTAL](https://cotal.ai)**, coordination: a local NATS mesh where signed, role‑specialized agents hand off work
 
 ---
 
@@ -77,7 +77,7 @@ cotal/
 .env.example             secret names + how to obtain each
 ```
 
-Every secret is referenced as `{{secret:NAME}}` — **no credential values are committed.**
+Every secret is referenced as `{{secret:NAME}}`, **no credential values are committed.**
 
 ---
 
@@ -85,7 +85,7 @@ Every secret is referenced as `{{secret:NAME}}` — **no credential values are c
 
 ### Multi-agent hand-off
 1. **Tech Lead** (`claude-haiku-4-5`, no tools) reads the normalized event and emits a strict‑JSON brief: `whatShipped`, `whyItMatters`, `significance`, `vibeKeywords`.
-2. **Copywriter** (`claude-haiku-4-5`, no tools) turns the brief into a ≤200‑char announcement grounded only in the brief — never inventing facts.
+2. **Copywriter** (`claude-haiku-4-5`, no tools) turns the brief into a ≤200‑char announcement grounded only in the brief, never inventing facts.
 3. The flow does the **Giphy** lookup deterministically (using `vibeKeywords`) so the agents stay fast and cheap, then routes per platform.
 
 ### Per-platform rendering
@@ -94,10 +94,10 @@ Every secret is referenced as `{{secret:NAME}}` — **no credential values are c
 - **X** → clean text tweet via the auto‑refresh flow.
 
 ### X unattended posting
-X OAuth2 access tokens expire in ~2h and the refresh token rotates on every use. `x-post-auto` reads the token from a Runtype **Record** (`x_oauth/x_token`), refreshes when near expiry, **persists the rotated refresh token**, and posts — all with a **public** OAuth2 client (no client secret). See [`runtype/flows/x-post-auto.json`](runtype/flows/x-post-auto.json).
+X OAuth2 access tokens expire in ~2h and the refresh token rotates on every use. `x-post-auto` reads the token from a Runtype **Record** (`x_oauth/x_token`), refreshes when near expiry, **persists the rotated refresh token**, and posts, all with a **public** OAuth2 client (no client secret). See [`runtype/flows/x-post-auto.json`](runtype/flows/x-post-auto.json).
 
 ### Reliability
-A Runtype **eval suite** grades the Copywriter (valid output, no invented facts, mentions author + repo, welcomes first‑timers). It already caught a real model regression (Gemini 3.x truncating outputs) before it shipped — which is why the agents run on Claude Haiku 4.5.
+A Runtype **eval suite** grades the Copywriter (valid output, no invented facts, mentions author + repo, welcomes first‑timers). It already caught a real model regression (Gemini 3.x truncating outputs) before it shipped, which is why the agents run on Claude Haiku 4.5.
 
 ---
 

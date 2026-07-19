@@ -1,5 +1,5 @@
 {
-  "_note": "Post to X with automatic OAuth2 token refresh. Reads the rotating token from the x_oauth/x_token record, refreshes when near expiry (public client — client_id in body, no secret), PERSISTS the rotated refresh token, then posts. Wrapped as the 'broadcast_x_auto' flow-tool. Key finding: api-call form bodies do NOT auto-quote {{vars}} (external tools do), and {{secret:}} does NOT resolve in api-call headers — hence the public-client design.",
+  "_note": "Post to X with automatic OAuth2 token refresh. Reads the rotating token from the x_oauth/x_token record, refreshes when near expiry (public client, client_id in body, no secret), PERSISTS the rotated refresh token, then posts. Wrapped as the 'broadcast_x_auto' flow-tool. Key finding: api-call form bodies do NOT auto-quote {{vars}} (external tools do), and {{secret:}} does NOT resolve in api-call headers, hence the public-client design.",
   "name": "X Post (auto-refresh)",
   "steps": [
     {
