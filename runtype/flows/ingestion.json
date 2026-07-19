@@ -1,0 +1,109 @@
+{
+  "_note": "GitHub event -> multi-agent swarm -> meme -> broadcast -> state. Tool refs use the portable 'tool:<name>' form; execute-agent 'agentId' values are placeholders — set them to your created agent ids on import. The `when` gate 'G' guards every step after dedupe so unprocessable/duplicate events short-circuit.",
+  "name": "GitHub Event → Announce & Broadcast",
+  "steps": [
+    {
+      "type": "transform-data",
+      "name": "normalize",
+      "config": {
+        "outputVariable": "evt",
+        "script": "const p=input.payload||input;const repoFull=(p.repository&&(p.repository.full_name||p.repository.name))||'bitmask-stack';let evt={shouldProcess:false,eventType:'unknown',repo:repoFull,author:'',title:'',url:'',dedupeCollection:'processed_commits',dedupeName:'skip-'+Date.now(),commitCount:0};if(p.pull_request){evt.eventType='pull_request';const pr=p.pull_request;evt.author=(pr.user&&pr.user.login)||'someone';evt.title=pr.title||'';evt.url=pr.html_url||'';const num=p.number||pr.number;evt.dedupeCollection='processed_prs';evt.dedupeName=repoFull+'#'+num;evt.shouldProcess=(p.action==='closed'&&pr.merged===true);}else if(p.head_commit||p.commits){evt.eventType='push';const hc=p.head_commit||{};evt.author=(hc.author&&(hc.author.username||hc.author.name))||(p.pusher&&p.pusher.name)||'someone';evt.title=((hc.message||'').split(/\\r?\\n/))[0];evt.url=hc.url||'';evt.dedupeCollection='processed_commits';evt.dedupeName=hc.id||('nohc-'+Date.now());evt.commitCount=Array.isArray(p.commits)?p.commits.length:0;const ref=p.ref||'';evt.shouldProcess=(ref.indexOf('refs/heads/')===0&&p.deleted!==true&&!!hc.id);}return evt;"
+      }
+    },
+    {
+      "type": "list-records",
+      "name": "dedupe check",
+      "config": { "recordType": "{{evt.dedupeCollection}}", "recordName": "{{evt.dedupeName}}", "limit": 1, "outputVariable": "existing" }
+    },
+    {
+      "type": "list-records",
+      "name": "contributor check",
+      "when": "{{evt.shouldProcess}} === true && {{existing.length}} === 0",
+      "config": { "recordFilter": { "type": "known_contributors", "where": { "field": "metadata.login", "op": "eq", "value": "{{evt.author}}" } }, "limit": 1, "outputVariable": "contribRows" }
+    },
+    {
+      "type": "transform-data",
+      "name": "build techlead input",
+      "when": "{{evt.shouldProcess}} === true && {{existing.length}} === 0",
+      "config": { "outputVariable": "techInput", "script": "const e=input.evt;const first=!(Array.isArray(input.contribRows)&&input.contribRows.length>0);return {json:JSON.stringify({eventType:e.eventType,repo:e.repo,author:e.author,title:e.title,url:e.url,commitCount:e.commitCount,isFirstTimeContributor:first}),first:first};" }
+    },
+    {
+      "type": "execute-agent",
+      "name": "tech lead brief",
+      "when": "{{evt.shouldProcess}} === true && {{existing.length}} === 0",
+      "config": { "agentId": "agent:bitmask Tech Lead", "message": "{{techInput.json}}", "outputVariable": "brief" }
+    },
+    {
+      "type": "transform-data",
+      "name": "build copywriter input",
+      "when": "{{evt.shouldProcess}} === true && {{existing.length}} === 0",
+      "config": { "outputVariable": "copyInput", "script": "let raw=(input.brief||'').trim();if(raw.indexOf('```')>=0){raw=raw.replace(/```json/gi,'').replace(/```/g,'').trim();}let b={};try{b=JSON.parse(raw);}catch(e){b={};}const e=input.evt;const first=(input.techInput&&input.techInput.first)||false;const vibe=b.vibeKeywords||'ship it code';return {json:JSON.stringify({repo:e.repo,author:e.author,url:e.url,isFirstTimeContributor:first,whatShipped:b.whatShipped||e.title,whyItMatters:b.whyItMatters||'',significance:b.significance||'notable',vibeKeywords:vibe}),vibeKeywords:vibe};" }
+    },
+    {
+      "type": "execute-agent",
+      "name": "copywriter",
+      "when": "{{evt.shouldProcess}} === true && {{existing.length}} === 0",
+      "config": { "agentId": "agent:bitmask Announcer", "message": "{{copyInput.json}}", "outputVariable": "announcement" }
+    },
+    {
+      "type": "tool-call",
+      "name": "giphy search",
+      "when": "{{evt.shouldProcess}} === true && {{existing.length}} === 0",
+      "config": { "toolId": "tool:giphy_search", "parameters": { "query": "{{copyInput.vibeKeywords}}" }, "outputVariable": "gifRaw" }
+    },
+    {
+      "type": "transform-data",
+      "name": "parse announcement",
+      "when": "{{evt.shouldProcess}} === true && {{existing.length}} === 0",
+      "config": { "outputVariable": "post", "script": "const text=(input.announcement||'').trim();const g=input.gifRaw||{};let gifUrl='';try{const im=g.data[0].images;gifUrl=(im.downsized&&im.downsized.url)||(im.original&&im.original.url)||'';}catch(e){gifUrl='';}const hasGif=/^https?:\\/\\//.test(gifUrl);const rich=hasGif?(text+'\\n'+gifUrl):text;return {text:text,gifUrl:gifUrl,hasGif:hasGif,rich:rich};" }
+    },
+    {
+      "type": "transform-data",
+      "name": "build contributor meta",
+      "when": "{{evt.shouldProcess}} === true && {{existing.length}} === 0",
+      "config": { "outputVariable": "contribMeta", "script": "const e=input.evt;return {login:e.author,firstSeenRepo:e.repo,firstSeenAt:new Date().toISOString(),welcomed:true};" }
+    },
+    {
+      "type": "tool-call",
+      "name": "telegram gif",
+      "when": "{{evt.shouldProcess}} === true && {{existing.length}} === 0 && {{post.hasGif}} === true",
+      "config": { "toolId": "tool:telegram_animation", "parameters": { "animation": "{{post.gifUrl}}", "caption": "{{post.text}}" }, "outputVariable": "tgGif" }
+    },
+    {
+      "type": "tool-call",
+      "name": "telegram text",
+      "when": "{{evt.shouldProcess}} === true && {{existing.length}} === 0 && {{post.hasGif}} === false",
+      "config": { "toolId": "tool:broadcast_telegram", "parameters": { "text": "{{post.text}}" }, "outputVariable": "tgText" }
+    },
+    {
+      "type": "tool-call",
+      "name": "broadcast Discord",
+      "when": "{{evt.shouldProcess}} === true && {{existing.length}} === 0",
+      "config": { "toolId": "tool:broadcast_discord", "parameters": { "text": "{{post.rich}}" }, "outputVariable": "bdcResult" }
+    },
+    {
+      "type": "tool-call",
+      "name": "broadcast Slack",
+      "when": "{{evt.shouldProcess}} === true && {{existing.length}} === 0",
+      "config": { "toolId": "tool:broadcast_slack", "parameters": { "text": "{{post.rich}}" }, "outputVariable": "bslResult" }
+    },
+    {
+      "type": "tool-call",
+      "name": "broadcast X",
+      "when": "{{evt.shouldProcess}} === true && {{existing.length}} === 0",
+      "config": { "toolId": "tool:broadcast_x_auto", "parameters": { "text": "{{post.text}}" }, "outputVariable": "bxResult" }
+    },
+    {
+      "type": "upsert-record",
+      "name": "mark processed",
+      "when": "{{evt.shouldProcess}} === true && {{existing.length}} === 0",
+      "config": { "recordType": "{{evt.dedupeCollection}}", "recordName": "{{evt.dedupeName}}", "sourceVariable": "evt", "outputVariable": "saved" }
+    },
+    {
+      "type": "upsert-record",
+      "name": "mark contributor",
+      "when": "{{evt.shouldProcess}} === true && {{existing.length}} === 0 && {{contribRows.length}} === 0",
+      "config": { "recordType": "known_contributors", "recordName": "{{evt.author}}", "sourceVariable": "contribMeta", "outputVariable": "savedContrib" }
+    }
+  ]
+}

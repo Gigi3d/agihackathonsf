@@ -1,0 +1,44 @@
+{
+  "_note": "Post to X with automatic OAuth2 token refresh. Reads the rotating token from the x_oauth/x_token record, refreshes when near expiry (public client — client_id in body, no secret), PERSISTS the rotated refresh token, then posts. Wrapped as the 'broadcast_x_auto' flow-tool. Key finding: api-call form bodies do NOT auto-quote {{vars}} (external tools do), and {{secret:}} does NOT resolve in api-call headers — hence the public-client design.",
+  "name": "X Post (auto-refresh)",
+  "steps": [
+    {
+      "type": "get-record",
+      "name": "load token",
+      "config": { "recordType": "x_oauth", "recordName": "x_token", "outputVariable": "tok" }
+    },
+    {
+      "type": "transform-data",
+      "name": "token state",
+      "config": { "outputVariable": "st", "script": "const m=(input.tok&&input.tok.metadata)||{};function real(v){if(v===undefined||v===null)return '';if(typeof v==='string'){if(v==='')return '';if(v.indexOf('PASTE_')===0)return '';}return v;}const rt=real(m.refreshToken)||real(m.refreshtoken)||'';const at=real(m.accessToken)||real(m.accesstoken)||'';const cid=real(m.clientId)||real(m.clientid)||'';const exp=Number(m.expiresAt||m.expiresat||0);const now=Date.now();const need=(!at)||(now>=(exp-120000));return {need:need,refreshToken:rt,accessToken:at,clientId:cid};" }
+    },
+    {
+      "type": "api-call",
+      "name": "refresh token",
+      "when": "{{st.need}} === true",
+      "config": { "outputVariable": "refreshed", "http": { "url": "https://api.twitter.com/2/oauth2/token", "method": "POST", "headers": { "Content-Type": "application/x-www-form-urlencoded" }, "body": "grant_type=refresh_token&refresh_token={{st.refreshToken}}&client_id={{st.clientId}}" } }
+    },
+    {
+      "type": "transform-data",
+      "name": "pick token",
+      "config": { "outputVariable": "pick", "script": "const r=input.refreshed;const s=input.st;let access=s.accessToken,changed=false;if(r&&r.access_token){access=r.access_token;changed=true;}return {access:access,changed:changed};" }
+    },
+    {
+      "type": "transform-data",
+      "name": "build meta",
+      "when": "{{pick.changed}} === true",
+      "config": { "outputVariable": "meta", "script": "const r=input.refreshed;const s=input.st;const access=r.access_token;const refresh=r.refresh_token||s.refreshToken;const expiresAt=Date.now()+((Number(r.expires_in)||7200)*1000);return {clientId:s.clientId,refreshToken:refresh,accessToken:access,expiresAt:expiresAt};" }
+    },
+    {
+      "type": "upsert-record",
+      "name": "persist token",
+      "when": "{{pick.changed}} === true",
+      "config": { "recordType": "x_oauth", "recordName": "x_token", "sourceVariable": "meta", "outputVariable": "savedTok" }
+    },
+    {
+      "type": "tool-call",
+      "name": "post tweet",
+      "config": { "toolId": "tool:x_post_dynamic", "parameters": { "text": "{{text}}", "access_token": "{{pick.access}}" }, "outputVariable": "tweetResult" }
+    }
+  ]
+}

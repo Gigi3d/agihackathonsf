@@ -1,0 +1,31 @@
+{
+  "_note": "Runtype collections used for dedupe + first-timer state. Records key on (type, name); the metadata schemas below are the intended shape. Also documented: the x_oauth record that holds rotating X OAuth2 tokens.",
+  "collections": [
+    {
+      "slug": "processed_commits",
+      "display_name": "Processed Commits",
+      "description": "Tracks announced push commit SHAs to prevent duplicate posts. Record name = commit SHA.",
+      "schema": { "type": "object", "properties": { "sha": { "type": "string" }, "repo": { "type": "string" }, "author": { "type": "string" }, "message": { "type": "string" }, "url": { "type": "string" }, "processedAt": { "type": "string", "format": "date-time" } }, "required": ["sha"] }
+    },
+    {
+      "slug": "processed_prs",
+      "display_name": "Processed PRs",
+      "description": "Tracks announced merged PRs. Record name = 'owner/repo#number'.",
+      "schema": { "type": "object", "properties": { "key": { "type": "string" }, "number": { "type": "number" }, "repo": { "type": "string" }, "author": { "type": "string" }, "title": { "type": "string" }, "url": { "type": "string" }, "processedAt": { "type": "string", "format": "date-time" } }, "required": ["key"] }
+    },
+    {
+      "slug": "known_contributors",
+      "display_name": "Known Contributors",
+      "description": "Tracks contributors seen before, to trigger a first-time contributor welcome. Record name = author login.",
+      "schema": { "type": "object", "properties": { "login": { "type": "string" }, "firstSeenRepo": { "type": "string" }, "firstSeenAt": { "type": "string", "format": "date-time" }, "welcomed": { "type": "boolean" } }, "required": ["login"] }
+    }
+  ],
+  "records": [
+    {
+      "type": "x_oauth",
+      "name": "x_token",
+      "_note": "Holds the rotating X OAuth2 state. Seed clientId + refreshToken once (see x-seed-exchange). The x-post-auto flow fills accessToken/expiresAt and rotates refreshToken on every post. DO NOT commit real values.",
+      "metadata": { "clientId": "<X public client id>", "refreshToken": "<seed refresh token>", "accessToken": "", "expiresAt": 0 }
+    }
+  ]
+}

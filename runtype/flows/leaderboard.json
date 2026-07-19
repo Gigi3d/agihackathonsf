@@ -1,0 +1,37 @@
+{
+  "_note": "Weekly top-10 contributor leaderboard. Schedule this flow for Sunday 09:00 UTC (cron '0 9 * * 0'). Tool refs use the portable 'tool:<name>' form.",
+  "name": "Weekly Contributor Leaderboard",
+  "steps": [
+    {
+      "type": "transform-data",
+      "name": "compute since",
+      "config": { "outputVariable": "dateInfo", "script": "const d=new Date(Date.now()-7*864e5);return {since:d.toISOString().slice(0,10)};" }
+    },
+    {
+      "type": "tool-call",
+      "name": "fetch commits",
+      "config": { "toolId": "tool:github_search_commits", "parameters": { "since": "{{dateInfo.since}}" }, "outputVariable": "commits" }
+    },
+    {
+      "type": "transform-data",
+      "name": "aggregate",
+      "config": { "outputVariable": "lb", "script": "const r=input.commits||{};const data=(r.items?r:(r.body&&r.body.items?r.body:(r.data&&r.data.items?r.data:r)))||{};const items=Array.isArray(data.items)?data.items:[];const counts={};for(const it of items){const login=(it.author&&it.author.login)||(it.commit&&it.commit.author&&it.commit.author.name)||'unknown';counts[login]=(counts[login]||0)+1;}const ranked=Object.keys(counts).map(function(k){return {login:k,n:counts[k]};}).sort(function(a,b){return b.n-a.n;});const top=ranked.slice(0,10);const medals=['🥇','🥈','🥉'];const boardFull=top.map(function(e,i){return (medals[i]||((i+1)+'.'))+' @'+e.login+' — '+e.n;}).join('\\n');const teaser=top.slice(0,3).map(function(e,i){return (medals[i]||((i+1)+'.'))+' @'+e.login+' ('+e.n+')';}).join('  ');const weekOf=(input.dateInfo&&input.dateInfo.since)||'';return {boardFull:boardFull||'No commits this week.',teaser:teaser,total:items.length,count:ranked.length,weekOf:weekOf};" }
+    },
+    {
+      "type": "prompt",
+      "name": "witty header",
+      "when": "{{lb.count}} > 0",
+      "config": { "mode": "task", "model": "claude-haiku-4-5", "responseFormat": "text", "outputVariable": "hdr", "temperature": 0.85, "maxTokens": 120, "systemPrompt": "You are the bitmask-stack community hype-bot: witty, enthusiastic, developer-to-developer, never corporate.", "userPrompt": "Write ONE short witty header line (max 120 characters, at most 1 emoji) announcing this week's bitmask-stack contributor leaderboard. Context: {{lb.total}} commits from {{lb.count}} contributors, week starting {{lb.weekOf}}. Output ONLY the single header line — no leaderboard, no quotes, no preamble." }
+    },
+    {
+      "type": "transform-data",
+      "name": "compose messages",
+      "when": "{{lb.count}} > 0",
+      "config": { "outputVariable": "msgs", "script": "const l=input.lb;const link='https://github.com/bitmask-stack';const header=(input.hdr||'This week in bitmask-stack').trim();const full=header+'\\n\\n'+l.boardFull+'\\n\\n🔗 '+link;let x=header+'\\n'+l.teaser+'\\n🏆 Full leaderboard in our Discord/Telegram/Slack';if(x.length>275)x=x.slice(0,272)+'…';return {full:full,xtext:x};" }
+    },
+    { "type": "tool-call", "name": "broadcast X", "when": "{{lb.count}} > 0", "config": { "toolId": "tool:broadcast_x_auto", "parameters": { "text": "{{msgs.xtext}}" }, "outputVariable": "bxResult" } },
+    { "type": "tool-call", "name": "broadcast Telegram", "when": "{{lb.count}} > 0", "config": { "toolId": "tool:broadcast_telegram", "parameters": { "text": "{{msgs.full}}" }, "outputVariable": "btgResult" } },
+    { "type": "tool-call", "name": "broadcast Discord", "when": "{{lb.count}} > 0", "config": { "toolId": "tool:broadcast_discord", "parameters": { "text": "{{msgs.full}}" }, "outputVariable": "bdcResult" } },
+    { "type": "tool-call", "name": "broadcast Slack", "when": "{{lb.count}} > 0", "config": { "toolId": "tool:broadcast_slack", "parameters": { "text": "{{msgs.full}}" }, "outputVariable": "bslResult" } }
+  ]
+}

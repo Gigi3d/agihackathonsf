@@ -1,0 +1,27 @@
+{
+  "_note": "ONE-TIME: exchange an OAuth2 PKCE authorization code for tokens and seed the x_oauth/x_token record. Run once after the interactive PKCE authorize step. Replace the placeholders with your X public client id, URL-encoded callback, and PKCE code_verifier. Pass the authorization `code` as the flow input.",
+  "name": "X Seed Token Exchange",
+  "steps": [
+    {
+      "type": "api-call",
+      "name": "exchange",
+      "config": { "outputVariable": "tokens", "http": { "url": "https://api.twitter.com/2/oauth2/token", "method": "POST", "headers": { "Content-Type": "application/x-www-form-urlencoded" }, "body": "grant_type=authorization_code&client_id=<X_PUBLIC_CLIENT_ID>&redirect_uri=<URL_ENCODED_CALLBACK>&code_verifier=<PKCE_CODE_VERIFIER>&code={{code}}" } }
+    },
+    {
+      "type": "transform-data",
+      "name": "build meta",
+      "config": { "outputVariable": "meta", "script": "const t=input.tokens||{};return {clientId:'<X_PUBLIC_CLIENT_ID>',refreshToken:t.refresh_token||'',accessToken:t.access_token||'',expiresAt:Date.now()+((Number(t.expires_in)||7200)*1000)};" }
+    },
+    {
+      "type": "upsert-record",
+      "name": "persist",
+      "when": "'{{meta.refreshToken}}'.length > 0",
+      "config": { "recordType": "x_oauth", "recordName": "x_token", "sourceVariable": "meta", "outputVariable": "saved" }
+    },
+    {
+      "type": "transform-data",
+      "name": "status",
+      "config": { "outputVariable": "status", "script": "const t=input.tokens||{};const m=input.meta||{};return {stored:!!m.refreshToken,refreshLen:(m.refreshToken||'').length,accessLen:(m.accessToken||'').length,scope:t.scope||null,expiresIn:t.expires_in||null,error:t.error||null,errorDesc:t.error_description||null};" }
+    }
+  ]
+}

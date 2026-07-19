@@ -1,0 +1,61 @@
+{
+  "_note": "Runtype custom tools. Secrets are referenced as {{secret:NAME}}; runtime {{params}} are auto-typed into JSON bodies. Import via create_tool.",
+  "tools": [
+    {
+      "name": "giphy_search",
+      "tool_type": "external",
+      "description": "Search Giphy for one relevant meme/GIF from short keywords. Returns data[0].images.downsized.url / .original.url.",
+      "parameters_schema": { "type": "object", "required": ["query"], "properties": { "query": { "type": "string", "description": "Short space-separated keywords." } } },
+      "config": { "url": "https://api.giphy.com/v1/gifs/search?api_key={{secret:GIPHY_API_KEY}}&q={{query}}&limit=1&rating=pg-13&bundle=messaging_non_clipping", "method": "GET" }
+    },
+    {
+      "name": "github_search_commits",
+      "tool_type": "external",
+      "description": "Search commits across the bitmask-stack org on/after an ISO date. Used by the weekly leaderboard.",
+      "parameters_schema": { "type": "object", "required": ["since"], "properties": { "since": { "type": "string", "description": "ISO date lower bound, e.g. 2026-07-11." } } },
+      "config": { "url": "https://api.github.com/search/commits?q=org:bitmask-stack+author-date:>={{since}}&sort=author-date&order=desc&per_page=100", "method": "GET", "headers": { "Authorization": "Bearer {{secret:GITHUB_API_TOKEN}}", "Accept": "application/vnd.github+json", "User-Agent": "runtype-bitmask-bot", "X-GitHub-Api-Version": "2022-11-28" } }
+    },
+    {
+      "name": "broadcast_telegram",
+      "tool_type": "external",
+      "description": "Send a text message to the Telegram channel (sendMessage).",
+      "parameters_schema": { "type": "object", "required": ["text"], "properties": { "text": { "type": "string" } } },
+      "config": { "url": "https://api.telegram.org/bot{{secret:TELEGRAM_BOT_TOKEN}}/sendMessage", "method": "POST", "headers": { "Content-Type": "application/json" }, "body": "{\"chat_id\": \"{{secret:TELEGRAM_CHAT_ID}}\", \"text\": {{text}}, \"disable_web_page_preview\": false}" }
+    },
+    {
+      "name": "telegram_animation",
+      "tool_type": "external",
+      "description": "Post an animated GIF inline to Telegram (sendAnimation) so the meme plays, with the announcement as the caption.",
+      "parameters_schema": { "type": "object", "required": ["animation", "caption"], "properties": { "animation": { "type": "string", "description": "Direct .gif/.mp4 URL." }, "caption": { "type": "string" } } },
+      "config": { "url": "https://api.telegram.org/bot{{secret:TELEGRAM_BOT_TOKEN}}/sendAnimation", "method": "POST", "headers": { "Content-Type": "application/json" }, "body": "{\"chat_id\": \"{{secret:TELEGRAM_CHAT_ID}}\", \"animation\": {{animation}}, \"caption\": {{caption}}}" }
+    },
+    {
+      "name": "broadcast_discord",
+      "tool_type": "external",
+      "description": "Post to a Discord channel via its Incoming Webhook (auto-embeds gif URLs).",
+      "parameters_schema": { "type": "object", "required": ["text"], "properties": { "text": { "type": "string" } } },
+      "config": { "url": "{{secret:DISCORD_WEBHOOK_URL}}", "method": "POST", "headers": { "Content-Type": "application/json" }, "body": "{\"content\": {{text}}}" }
+    },
+    {
+      "name": "broadcast_slack",
+      "tool_type": "external",
+      "description": "Post to a Slack channel via its Incoming Webhook (unfurls gif URLs).",
+      "parameters_schema": { "type": "object", "required": ["text"], "properties": { "text": { "type": "string" } } },
+      "config": { "url": "{{secret:SLACK_WEBHOOK_URL}}", "method": "POST", "headers": { "Content-Type": "application/json" }, "body": "{\"text\": {{text}}}" }
+    },
+    {
+      "name": "x_post_dynamic",
+      "tool_type": "external",
+      "description": "Post a tweet with a runtime-supplied OAuth2 access token (not a stored secret). Called by the x-post-auto flow after refresh.",
+      "parameters_schema": { "type": "object", "required": ["text", "access_token"], "properties": { "text": { "type": "string" }, "access_token": { "type": "string" } } },
+      "config": { "url": "https://api.twitter.com/2/tweets", "method": "POST", "headers": { "Authorization": "Bearer {{access_token}}", "Content-Type": "application/json" }, "body": "{\"text\": {{text}}}" }
+    },
+    {
+      "name": "broadcast_x_auto",
+      "tool_type": "flow",
+      "description": "Post to X with automatic OAuth2 token refresh + rotation. Wraps the x-post-auto flow so other flows can call it like a tool.",
+      "parameters_schema": { "type": "object", "required": ["text"], "properties": { "text": { "type": "string" } } },
+      "config": { "flowRef": "flows/x-post-auto.json" }
+    }
+  ]
+}
