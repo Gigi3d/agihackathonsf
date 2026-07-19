@@ -4,6 +4,8 @@
 
 First deployed for **BitMask** (a 160,000+ developer community across four platforms, backed by Tim Draper); built for any repo, open or closed.
 
+> **Why I'm building this:** I run BitMask's 160,000-person developer community across four social platforms, and BitMask is backed by legendary investor Tim Draper. Our engineers ship constantly, but the people who care most, our community, never hear about it. Nobody hand-posts every commit to four channels, so the work stays invisible and momentum quietly dies. OpenPulse closes that gap automatically.
+
 Built for the AGI Hackathon SF on a **Dual‑Core** stack:
 
 - **[Runtype](https://runtype.com)**, execution: agents, flows, tools, secret injection, evals, broadcasting
