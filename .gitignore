@@ -4,8 +4,7 @@ node_modules/
 *.log
 .DS_Store
 
-# COTAL / InsForge local state (may contain tokens)
+# COTAL local state (may contain tokens)
 .cotal/
 .config/cotal/
-.insforge/
 AGENTS.md

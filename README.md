@@ -7,8 +7,6 @@ Built for the AGI Hackathon SF on a **Dual‑Core** stack:
 - **[Runtype](https://runtype.com)** — execution: agents, flows, tools, secret injection, evals, broadcasting
 - **[COTAL](https://cotal.ai)** — coordination: a local NATS mesh where signed, role‑specialized agents hand off work
 
-> Honesty note: **InsForge** was evaluated for the backend but dropped — its API (`api.insforge.dev`) serves an incomplete TLS certificate chain that Node.js rejects, so neither the CLI nor a cloud‑to‑cloud integration could authenticate. Runtype Collections cover state instead. See [Status](#status).
-
 ---
 
 ## Architecture
@@ -127,7 +125,6 @@ See [`cotal/README.md`](cotal/README.md).
 | Eval suite | ✅ built (caught a real bug) |
 | Weekly leaderboard flow | ✅ built; schedule cron blocked by plan quota (402) |
 | COTAL mesh + 2 role agents | ✅ running; hand-off demoed interactively |
-| InsForge backend | ❌ dropped (upstream TLS cert bug) |
 
 ## Hackathon tracks
 Autonomous Agents & Workflows · Multi-Agent Systems & Coordination · Applied AI Products.
