@@ -1,5 +1,6 @@
 {
-  "_note": "GitHub event -> multi-agent swarm -> meme -> broadcast -> state. Tool refs use the portable 'tool:<name>' form; execute-agent 'agentId' values are placeholders, set them to your created agent ids on import. The `when` gate 'G' guards every step after dedupe so unprocessable/duplicate events short-circuit.",
+  "_note": "GitHub event -> multi-agent swarm -> meme -> broadcast -> state. Tool refs use the portable 'tool:<name>' form; execute-agent 'agentId' values are placeholders, set them to your created agent ids on import.",
+  "_gotcha": "IMPORTANT: Runtype does NOT resolve array '.length' inside a `when` predicate, so a guard like `{{existing.length}} === 0` silently evaluates false and every guarded step is skipped (the flow then completes 'successfully' having posted nothing). Booleans DO resolve. That is why step 3 is a `gate` transform that computes the boolean `proceed` in JS, and every later step guards on `{{gate.proceed}} === true`. Do not inline `.length` back into these predicates.",
   "name": "GitHub Event → Announce & Broadcast",
   "steps": [
     {
@@ -16,93 +17,102 @@
       "config": { "recordType": "{{evt.dedupeCollection}}", "recordName": "{{evt.dedupeName}}", "limit": 1, "outputVariable": "existing" }
     },
     {
+      "type": "transform-data",
+      "name": "gate",
+      "_why": "Collapses 'processable AND not a duplicate' into one boolean, because `.length` does not resolve in `when` predicates. Every step below guards on this.",
+      "config": { "outputVariable": "gate", "script": "const e=input.evt||{};const dup=Array.isArray(input.existing)&&input.existing.length>0;return {proceed:(e.shouldProcess===true)&&!dup};" }
+    },
+    {
       "type": "list-records",
       "name": "contributor check",
-      "when": "{{evt.shouldProcess}} === true && {{existing.length}} === 0",
+      "when": "{{gate.proceed}} === true",
       "config": { "recordFilter": { "type": "known_contributors", "where": { "field": "metadata.login", "op": "eq", "value": "{{evt.author}}" } }, "limit": 1, "outputVariable": "contribRows" }
     },
     {
       "type": "transform-data",
       "name": "build techlead input",
-      "when": "{{evt.shouldProcess}} === true && {{existing.length}} === 0",
+      "when": "{{gate.proceed}} === true",
       "config": { "outputVariable": "techInput", "script": "const e=input.evt;const first=!(Array.isArray(input.contribRows)&&input.contribRows.length>0);return {json:JSON.stringify({eventType:e.eventType,repo:e.repo,author:e.author,title:e.title,url:e.url,commitCount:e.commitCount,isFirstTimeContributor:first}),first:first};" }
     },
     {
       "type": "execute-agent",
       "name": "tech lead brief",
-      "when": "{{evt.shouldProcess}} === true && {{existing.length}} === 0",
+      "when": "{{gate.proceed}} === true",
       "config": { "agentId": "agent:bitmask Tech Lead", "message": "{{techInput.json}}", "outputVariable": "brief" }
     },
     {
       "type": "transform-data",
       "name": "build copywriter input",
-      "when": "{{evt.shouldProcess}} === true && {{existing.length}} === 0",
+      "when": "{{gate.proceed}} === true",
       "config": { "outputVariable": "copyInput", "script": "let raw=(input.brief||'').trim();if(raw.indexOf('```')>=0){raw=raw.replace(/```json/gi,'').replace(/```/g,'').trim();}let b={};try{b=JSON.parse(raw);}catch(e){b={};}const e=input.evt;const first=(input.techInput&&input.techInput.first)||false;const vibe=b.vibeKeywords||'ship it code';return {json:JSON.stringify({repo:e.repo,author:e.author,url:e.url,isFirstTimeContributor:first,whatShipped:b.whatShipped||e.title,whyItMatters:b.whyItMatters||'',significance:b.significance||'notable',vibeKeywords:vibe}),vibeKeywords:vibe,vibeEnc:encodeURIComponent(vibe)};" }
     },
     {
       "type": "execute-agent",
       "name": "copywriter",
-      "when": "{{evt.shouldProcess}} === true && {{existing.length}} === 0",
+      "when": "{{gate.proceed}} === true",
       "config": { "agentId": "agent:bitmask Announcer", "message": "{{copyInput.json}}", "outputVariable": "announcement" }
     },
     {
       "type": "tool-call",
       "name": "giphy search",
-      "when": "{{evt.shouldProcess}} === true && {{existing.length}} === 0",
+      "_why": "vibeEnc is URL-encoded in the transform above; the Giphy tool does not encode multi-word queries itself.",
+      "when": "{{gate.proceed}} === true",
       "config": { "toolId": "tool:giphy_search", "parameters": { "query": "{{copyInput.vibeEnc}}" }, "outputVariable": "gifRaw" }
     },
     {
       "type": "transform-data",
       "name": "parse announcement",
-      "when": "{{evt.shouldProcess}} === true && {{existing.length}} === 0",
+      "when": "{{gate.proceed}} === true",
       "config": { "outputVariable": "post", "script": "const text=(input.announcement||'').trim();const g=input.gifRaw||{};let gifUrl='';try{const im=g.data[0].images;gifUrl=(im.downsized&&im.downsized.url)||(im.original&&im.original.url)||'';}catch(e){gifUrl='';}const hasGif=/^https?:\\/\\//.test(gifUrl);const rich=hasGif?(text+'\\n'+gifUrl):text;return {text:text,gifUrl:gifUrl,hasGif:hasGif,rich:rich};" }
     },
     {
       "type": "transform-data",
       "name": "build contributor meta",
-      "when": "{{evt.shouldProcess}} === true && {{existing.length}} === 0",
+      "when": "{{gate.proceed}} === true",
       "config": { "outputVariable": "contribMeta", "script": "const e=input.evt;return {login:e.author,firstSeenRepo:e.repo,firstSeenAt:new Date().toISOString(),welcomed:true};" }
     },
     {
       "type": "tool-call",
       "name": "telegram gif",
-      "when": "{{evt.shouldProcess}} === true && {{existing.length}} === 0 && {{post.hasGif}} === true",
+      "_why": "sendAnimation so the gif plays inline; a bare URL in message text does not render.",
+      "when": "{{gate.proceed}} === true && {{post.hasGif}} === true",
       "config": { "toolId": "tool:telegram_animation", "parameters": { "animation": "{{post.gifUrl}}", "caption": "{{post.text}}" }, "outputVariable": "tgGif" }
     },
     {
       "type": "tool-call",
       "name": "telegram text",
-      "when": "{{evt.shouldProcess}} === true && {{existing.length}} === 0 && {{post.hasGif}} === false",
+      "when": "{{gate.proceed}} === true && {{post.hasGif}} === false",
       "config": { "toolId": "tool:broadcast_telegram", "parameters": { "text": "{{post.text}}" }, "outputVariable": "tgText" }
     },
     {
       "type": "tool-call",
       "name": "broadcast Discord",
-      "when": "{{evt.shouldProcess}} === true && {{existing.length}} === 0",
+      "when": "{{gate.proceed}} === true",
       "config": { "toolId": "tool:broadcast_discord", "parameters": { "text": "{{post.rich}}" }, "outputVariable": "bdcResult" }
     },
     {
       "type": "tool-call",
       "name": "broadcast Slack",
-      "when": "{{evt.shouldProcess}} === true && {{existing.length}} === 0",
+      "when": "{{gate.proceed}} === true",
       "config": { "toolId": "tool:broadcast_slack", "parameters": { "text": "{{post.rich}}" }, "outputVariable": "bslResult" }
     },
     {
       "type": "tool-call",
       "name": "broadcast X",
-      "when": "{{evt.shouldProcess}} === true && {{existing.length}} === 0",
+      "when": "{{gate.proceed}} === true",
       "config": { "toolId": "tool:broadcast_x_auto", "parameters": { "text": "{{post.text}}" }, "outputVariable": "bxResult" }
     },
     {
       "type": "upsert-record",
       "name": "mark processed",
-      "when": "{{evt.shouldProcess}} === true && {{existing.length}} === 0",
+      "when": "{{gate.proceed}} === true",
       "config": { "recordType": "{{evt.dedupeCollection}}", "recordName": "{{evt.dedupeName}}", "sourceVariable": "evt", "outputVariable": "saved" }
     },
     {
       "type": "upsert-record",
       "name": "mark contributor",
-      "when": "{{evt.shouldProcess}} === true && {{existing.length}} === 0 && {{contribRows.length}} === 0",
+      "_why": "Guards on the boolean techInput.first rather than contribRows.length, for the same `when` limitation described in _gotcha.",
+      "when": "{{gate.proceed}} === true && {{techInput.first}} === true",
       "config": { "recordType": "known_contributors", "recordName": "{{evt.author}}", "sourceVariable": "contribMeta", "outputVariable": "savedContrib" }
     }
   ]

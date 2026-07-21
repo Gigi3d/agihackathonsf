@@ -85,6 +85,25 @@ Every secret is referenced as `{{secret:NAME}}`, **no credential values are comm
 
 ---
 
+## How to run this (read first)
+
+**There is no server to deploy and no `npm start`.** OpenPulse is built natively on Runtype, so the agents, flows, and tools execute on Runtype's platform rather than in a process you host. What this repo contains is their complete declarative definition.
+
+The logic is all here, it just lives somewhere you might not expect:
+
+| Looking for | It's here |
+|---|---|
+| Orchestration / control flow | the `steps` arrays in `runtype/flows/*.json` |
+| Business logic | the JS `script` fields inside those steps (normalize, gate, parse) |
+| Integrations | the HTTP configs in `runtype/tools.json` |
+| Prompts and models | `runtype/agents.json` |
+
+To actually run it you need a Runtype account: import the definitions in `runtype/`, create the secrets listed in [`.env.example`](.env.example), point a GitHub webhook at the surface URL, then dispatch. Full steps under [Setup](#setup).
+
+The one piece that runs on your own machine is the COTAL mesh, see [`cotal/README.md`](cotal/README.md).
+
+---
+
 ## How it works
 
 ### Multi-agent hand-off
@@ -132,8 +151,9 @@ A credible path to a $100M company.
 |---|---|
 | Runtype 2-agent swarm (Claude Haiku 4.5) | ✅ working |
 | Ingestion flow + dedupe + first-timer | ✅ built |
-| Giphy / GitHub / Telegram / Discord / Slack | ✅ live-tested |
-| X auto-refresh (token seeded & rotating) | ✅ built; live tweet pending |
+| Telegram (inline gif) / Discord / Slack | ✅ live, posting end-to-end |
+| Giphy / GitHub search | ✅ live-tested |
+| X auto-refresh (token seeded & rotating) | ⚠️ flow works, tweets blocked: the X app is not attached to a developer Project (`403 client-not-enrolled`), an account-side fix |
 | Eval suite | ✅ built (caught a real bug) |
 | Weekly leaderboard flow | ✅ built; schedule cron blocked by plan quota (402) |
 | COTAL mesh + 2 role agents | ✅ running; hand-off demoed interactively |
